@@ -19,10 +19,61 @@ export function downloadBlob(blob: Blob, filename: string): void {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
+  link.style.display = "none";
   document.body.appendChild(link);
   link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  // Delay revoke to 60s so mobile browsers, download managers, and slow disks finish writing
+  setTimeout(() => {
+    try {
+      if (link.parentNode) link.parentNode.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      // ignore
+    }
+  }, 60000);
+}
+
+export function saveWorkbook(wb: XLSX.WorkBook, filename: string): void {
+  // Method 1: SheetJS native writeFile handles mobile, desktop, and all vendor download flows
+  if (typeof window !== "undefined") {
+    try {
+      XLSX.writeFile(wb, filename);
+      return;
+    } catch (err) {
+      console.warn("XLSX.writeFile failed, falling back to Blob download:", err);
+    }
+  }
+
+  // Method 2: Blob fallback with proper Uint8Array buffer
+  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([out], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  downloadBlob(blob, filename);
+}
+
+function makeUniqueSheetName(
+  baseName: string,
+  existingNames: Set<string>
+): string {
+  // Sanitize invalid Excel characters: \ / ? * [ ] :
+  let clean = baseName.replace(/[:\\/?*\[\]]/g, "-").trim() || "Laporan";
+  if (clean.length > 25) clean = clean.slice(0, 25);
+
+  let candidate = clean;
+  let counter = 1;
+  while (existingNames.has(candidate.toLowerCase())) {
+    candidate = `${clean} (${counter})`;
+    if (candidate.length > 31) {
+      candidate = `${clean.slice(
+        0,
+        31 - String(counter).length - 3
+      )} (${counter})`;
+    }
+    counter++;
+  }
+  existingNames.add(candidate.toLowerCase());
+  return candidate;
 }
 
 async function toRasterDataUrl(dataUrl: string): Promise<string> {
@@ -54,7 +105,9 @@ export async function exportReportsPdf(
   months: Record<string, MonthApproval>,
   filename: string
 ): Promise<void> {
-  if (!reports.length) return;
+  if (!reports || !reports.length) {
+    throw new Error("Tidak ada data laporan untuk diekspor ke PDF.");
+  }
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
@@ -417,9 +470,13 @@ export function exportReportsXlsx(
   months: Record<string, MonthApproval>,
   filename: string
 ): void {
-  if (!reports.length) return;
+  if (!reports || !reports.length) {
+    throw new Error("Tidak ada data laporan untuk diekspor ke Excel.");
+  }
 
   const wb = XLSX.utils.book_new();
+  const usedSheetNames = new Set<string>();
+
   const detailHeader = [
     "No",
     "Area / Lokasi",
@@ -451,88 +508,103 @@ export function exportReportsXlsx(
   const pestTotals = PESTS.map(() => 0);
   let grandTotalPests = 0;
 
+  const isSingle = reports.length === 1;
+
+  // For multi-report export, reserve rekap sheet name so it stays clean
+  let rekapSheetName = "";
+  if (!isSingle) {
+    rekapSheetName = makeUniqueSheetName("Rekap Lengkap", usedSheetNames);
+  }
+
   reports.forEach((r) => {
-    const chemSummary = r.chemicals
-      .filter((c) => c.activeIngredient.trim())
+    const chemSummary = (r.chemicals || [])
+      .filter((c) => c && c.activeIngredient && c.activeIngredient.trim())
       .map((c) => `${c.activeIngredient} (${c.amount || "-"})`)
       .join("; ");
 
     const sheetRows: (string | number)[][] = [
       ["PT. MOIKO MITSUBA INDONESIA"],
       ["BUKTI PELAKSANAAN PEKERJAAN"],
-      ["Nama Pelanggan", r.customer, "", "", "Nama Petugas", r.officer],
-      ["Alamat", r.address, "", "", "Waktu Datang", r.arrivalTime],
-      ["Hari / Tgl", formatDateId(r.date), "", "", "Waktu Pulang", r.departureTime],
+      ["Nama Pelanggan", r.customer || "-", "", "", "Nama Petugas", r.officer || "-"],
+      ["Alamat", r.address || "-", "", "", "Waktu Datang", r.arrivalTime || "-"],
+      [
+        "Hari / Tgl",
+        formatDateId(r.date),
+        "",
+        "",
+        "Waktu Pulang",
+        r.departureTime || "-",
+      ],
       [],
       detailHeader,
     ];
 
-    r.floors.forEach((f) => {
-      sheetRows.push([f.no, f.name]);
-      f.rooms.forEach((rm) => {
+    (r.floors || []).forEach((f) => {
+      sheetRows.push([f.no || "", f.name || "Lantai"]);
+      (f.rooms || []).forEach((rm) => {
         const roomTotal = sumRoomPests(rm);
-        rm.pests.forEach((v, idx) => {
+        (rm.pests || []).forEach((v, idx) => {
           const val = parseInt(v, 10) || 0;
-          pestTotals[idx] += val;
+          pestTotals[idx] = (pestTotals[idx] || 0) + val;
         });
         grandTotalPests += roomTotal;
 
         sheetRows.push([
           "",
-          rm.name,
-          ...rm.methods.map((v) => (v ? "v" : "")),
-          ...rm.pests.map((v) => (v === "" || v === "0" ? "" : Number(v) || v)),
-          rm.photos.length ? `${rm.photos.length} foto` : "",
+          rm.name || "Ruangan",
+          ...(rm.methods || []).map((v) => (v ? "v" : "")),
+          ...(rm.pests || []).map((v) => (v === "" || v === "0" ? "" : Number(v) || v)),
+          (rm.photos || []).length ? `${rm.photos.length} foto` : "",
           rm.signature ? "Sudah" : "",
         ]);
 
         rekapRows.push([
           formatDateId(r.date),
-          r.customer,
-          r.officer,
-          r.arrivalTime,
-          r.departureTime,
-          f.name,
-          rm.name,
-          ...rm.methods.map((v) => (v ? "v" : "")),
-          ...rm.pests.map((v) => (v === "" ? 0 : Number(v) || 0)),
+          r.customer || "-",
+          r.officer || "-",
+          r.arrivalTime || "-",
+          r.departureTime || "-",
+          f.name || "-",
+          rm.name || "-",
+          ...(rm.methods || []).map((v) => (v ? "v" : "")),
+          ...(rm.pests || []).map((v) => (v === "" ? 0 : Number(v) || 0)),
           roomTotal,
-          rm.photos.length,
+          (rm.photos || []).length,
           rm.signature ? "Sudah" : "Belum",
           chemSummary,
-          r.notes,
+          r.notes || "",
         ]);
       });
     });
 
     sheetRows.push([], ["Penggunaan Chemical", "Bahan Aktif", "Jml"]);
-    r.chemicals.forEach((c, i) =>
-      sheetRows.push([i + 1, c.activeIngredient, c.amount])
+    (r.chemicals || []).forEach((c, i) =>
+      sheetRows.push([i + 1, c.activeIngredient || "-", c.amount || "-"])
     );
-    sheetRows.push([], ["Catatan", r.notes]);
+    sheetRows.push([], ["Catatan", r.notes || ""]);
 
     const M = months[getMonthKey(r.date)] || createEmptyApproval();
     sheetRows.push(
       [],
       [
         "Penanggung Jawab MOIKO",
-        M.pjName,
+        M.pjName || "-",
         "",
         "Pengawas CUSTOMER",
-        M.pwName,
+        M.pwName || "-",
         "",
         "Disetujui CUSTOMER",
-        M.dkName,
+        M.dkName || "-",
       ]
     );
 
     const ws = XLSX.utils.aoa_to_sheet(sheetRows);
     ws["!cols"] = [{ wch: 8 }, { wch: 30 }];
-    const sheetName = formatDateId(r.date).slice(0, 31);
+    const sheetName = makeUniqueSheetName(formatDateId(r.date), usedSheetNames);
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   });
 
-  // Add TOTAL row at bottom of Rekap Bulan sheet
+  // Add TOTAL row at bottom of Rekap sheet
   rekapRows.push([
     "TOTAL",
     "",
@@ -560,14 +632,15 @@ export function exportReportsXlsx(
     { wch: 24 },
     { wch: 24 },
   ];
-  XLSX.utils.book_append_sheet(wb, rekapSheet, "Rekap Lengkap");
-  wb.SheetNames.unshift(wb.SheetNames.pop() as string);
 
-  const arr = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-  downloadBlob(
-    new Blob([arr], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    }),
-    filename
-  );
+  if (isSingle) {
+    const singleRekapName = makeUniqueSheetName("Rekap Data", usedSheetNames);
+    XLSX.utils.book_append_sheet(wb, rekapSheet, singleRekapName);
+  } else {
+    XLSX.utils.book_append_sheet(wb, rekapSheet, rekapSheetName);
+    // Put "Rekap Lengkap" at first position in SheetNames
+    wb.SheetNames.unshift(wb.SheetNames.pop() as string);
+  }
+
+  saveWorkbook(wb, filename);
 }

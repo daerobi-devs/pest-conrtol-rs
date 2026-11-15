@@ -477,36 +477,64 @@ export default function HomePage() {
               }}
               onDeleteReport={handleDeleteReport}
               onExportPdfSingle={async (r) => {
-                await exportReportsPdf(
-                  [r],
-                  data.months,
-                  `Laporan_${r.date}.pdf`
-                );
-                showToast("PDF berhasil diunduh");
+                try {
+                  await exportReportsPdf(
+                    [r],
+                    data.months,
+                    `Laporan_${r.date}.pdf`
+                  );
+                  showToast("PDF berhasil diunduh");
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  showToast(`Gagal ekspor PDF: ${msg}`);
+                }
               }}
               onExportXlsxSingle={(r) => {
-                exportReportsXlsx(
-                  [r],
-                  data.months,
-                  `Laporan_${r.date}.xlsx`
-                );
-                showToast("Excel berhasil diunduh");
+                try {
+                  exportReportsXlsx(
+                    [r],
+                    data.months,
+                    `Laporan_${r.date}.xlsx`
+                  );
+                  showToast("Excel berhasil diunduh");
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  showToast(`Gagal ekspor Excel: ${msg}`);
+                }
               }}
               onExportPdfMonth={async () => {
-                await exportReportsPdf(
-                  monthReports,
-                  data.months,
-                  `Laporan_${selectedMonth}.pdf`
-                );
-                showToast("PDF bulanan berhasil diunduh");
+                try {
+                  if (monthReports.length === 0) {
+                    showToast("Tidak ada laporan di bulan ini untuk diekspor");
+                    return;
+                  }
+                  await exportReportsPdf(
+                    monthReports,
+                    data.months,
+                    `Laporan_${selectedMonth}.pdf`
+                  );
+                  showToast("PDF bulanan berhasil diunduh");
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  showToast(`Gagal ekspor PDF: ${msg}`);
+                }
               }}
               onExportXlsxMonth={() => {
-                exportReportsXlsx(
-                  monthReports,
-                  data.months,
-                  `Rekap_${selectedMonth}.xlsx`
-                );
-                showToast("Excel bulanan berhasil diunduh");
+                try {
+                  if (monthReports.length === 0) {
+                    showToast("Tidak ada laporan di bulan ini untuk diekspor");
+                    return;
+                  }
+                  exportReportsXlsx(
+                    monthReports,
+                    data.months,
+                    `Rekap_${selectedMonth}.xlsx`
+                  );
+                  showToast("Excel bulanan berhasil diunduh");
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  showToast(`Gagal ekspor Excel: ${msg}`);
+                }
               }}
             />
           )}
@@ -526,20 +554,30 @@ export default function HomePage() {
                 setActiveTab("overview");
               }}
               onExportPdf={async () => {
-                await exportReportsPdf(
-                  [activeReport],
-                  data.months,
-                  `Laporan_${activeReport.date}.pdf`
-                );
-                showToast("PDF berhasil diunduh");
+                try {
+                  await exportReportsPdf(
+                    [activeReport],
+                    data.months,
+                    `Laporan_${activeReport.date}.pdf`
+                  );
+                  showToast("PDF berhasil diunduh");
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  showToast(`Gagal ekspor PDF: ${msg}`);
+                }
               }}
               onExportXlsx={() => {
-                exportReportsXlsx(
-                  [activeReport],
-                  data.months,
-                  `Laporan_${activeReport.date}.xlsx`
-                );
-                showToast("Excel berhasil diunduh");
+                try {
+                  exportReportsXlsx(
+                    [activeReport],
+                    data.months,
+                    `Laporan_${activeReport.date}.xlsx`
+                  );
+                  showToast("Excel berhasil diunduh");
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  showToast(`Gagal ekspor Excel: ${msg}`);
+                }
               }}
             />
           )}
@@ -549,20 +587,38 @@ export default function HomePage() {
               monthKey={selectedMonth}
               reports={monthReports}
               onExportPdfMonth={async () => {
-                await exportReportsPdf(
-                  monthReports,
-                  data.months,
-                  `Laporan_${selectedMonth}.pdf`
-                );
-                showToast("PDF bulanan berhasil diunduh");
+                try {
+                  if (monthReports.length === 0) {
+                    showToast("Tidak ada laporan di bulan ini untuk diekspor");
+                    return;
+                  }
+                  await exportReportsPdf(
+                    monthReports,
+                    data.months,
+                    `Laporan_${selectedMonth}.pdf`
+                  );
+                  showToast("PDF bulanan berhasil diunduh");
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  showToast(`Gagal ekspor PDF: ${msg}`);
+                }
               }}
               onExportXlsxMonth={() => {
-                exportReportsXlsx(
-                  monthReports,
-                  data.months,
-                  `Rekap_${selectedMonth}.xlsx`
-                );
-                showToast("Excel bulanan berhasil diunduh");
+                try {
+                  if (monthReports.length === 0) {
+                    showToast("Tidak ada laporan di bulan ini untuk diekspor");
+                    return;
+                  }
+                  exportReportsXlsx(
+                    monthReports,
+                    data.months,
+                    `Rekap_${selectedMonth}.xlsx`
+                  );
+                  showToast("Excel bulanan berhasil diunduh");
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  showToast(`Gagal ekspor Excel: ${msg}`);
+                }
               }}
               onOpenReport={(id) => {
                 setActiveReportId(id);
