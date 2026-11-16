@@ -63,7 +63,7 @@ export function createEmptyApproval(): MonthApproval {
 
 export function createNewReport(
   monthKey?: string,
-  officerName = "Ahmad Fauzi",
+  officerName = "",
   templateFrom?: Report
 ): Report {
   const today = new Date().toISOString().slice(0, 10);

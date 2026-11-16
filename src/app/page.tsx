@@ -182,12 +182,9 @@ export default function HomePage() {
     const latest = [...data.reports].sort((a, b) =>
       a.date < b.date ? 1 : -1
     )[0];
-    const officerName =
-      currentRole.role === "officer"
-        ? currentRole.name
-        : latest?.officer || "Ahmad Fauzi";
 
-    const newReport = createNewReport(selectedMonth, officerName, latest);
+    // Kolom nama petugas dikosongkan saat buat laporan baru
+    const newReport = createNewReport(selectedMonth, "", latest);
     const nextData: AppDataState = {
       ...data,
       reports: [newReport, ...data.reports],

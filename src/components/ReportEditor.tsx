@@ -262,6 +262,7 @@ export function ReportEditor({
                   type="text"
                   value={report.officer}
                   onChange={(e) => updateField("officer", e.target.value)}
+                  placeholder="Masukkan nama petugas..."
                   className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[#c8102e] focus:outline-none"
                 />
               </div>

@@ -103,16 +103,4 @@ export const DEMO_ROLES: DemoRole[] = [
     role: "admin",
     title: "Pengawas / Admin RS",
   },
-  {
-    id: "officer-ahmad",
-    name: "Ahmad Fauzi",
-    role: "officer",
-    title: "Petugas Lapangan 1",
-  },
-  {
-    id: "officer-dedi",
-    name: "Dedi Kurniawan",
-    role: "officer",
-    title: "Petugas Lapangan 2",
-  },
 ];

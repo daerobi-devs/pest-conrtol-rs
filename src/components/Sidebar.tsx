@@ -8,7 +8,6 @@ import {
   FilePlus2,
   RotateCcw,
   Shield,
-  UserCheck,
   X,
 } from "lucide-react";
 import { MoikoLogo } from "@/components/MoikoLogo";
@@ -142,50 +141,29 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Role switcher & footer */}
+      {/* Admin Profile & reset action */}
       <div className="space-y-3 border-t border-[var(--border-subtle)] pt-4">
         <div>
           <div className="mb-1.5 flex items-center justify-between px-1">
             <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-              Simulasi Akses (Phase 1)
+              Status Akun
+            </span>
+            <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-emerald-400">
+              Full Access
             </span>
           </div>
-          <div className="space-y-1">
-            {DEMO_ROLES.map((r) => {
-              const selected = currentRole.id === r.id;
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => onChangeRole(r)}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs transition-all ${
-                    selected
-                      ? "border border-[var(--border-strong)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
-                      : "border border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/60"
-                  }`}
-                >
-                  <div
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
-                      r.role === "admin"
-                        ? "bg-emerald-500/15 text-emerald-400"
-                        : "bg-sky-500/15 text-sky-400"
-                    }`}
-                  >
-                    {r.role === "admin" ? (
-                      <Shield className="h-3.5 w-3.5" />
-                    ) : (
-                      <UserCheck className="h-3.5 w-3.5" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{r.name}</div>
-                    <div className="truncate text-[10px] text-[var(--text-muted)]">
-                      {r.title}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+          <div className="flex w-full items-center gap-2.5 rounded-lg border border-[var(--border-strong)] bg-[var(--bg-elevated)] px-2.5 py-2 text-left text-xs">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-400">
+              <Shield className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-semibold text-[var(--text-primary)]">
+                {currentRole.name}
+              </div>
+              <div className="truncate text-[10px] text-[var(--text-muted)]">
+                {currentRole.title}
+              </div>
+            </div>
           </div>
         </div>
 
